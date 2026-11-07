@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Admin Dashboard - Barangay Complaint &amp; Report System</title>
+  <script>
+    /* Apply the saved theme before the page paints (no white flash). */
+    (function () {
+      try {
+        var t = localStorage.getItem("bc_theme");
+        if (t !== "dark" && t !== "light") t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="admin-dashboard">
+
+  <!-- ===== LEFT SIDEBAR (edit the 3 menu links here) ===== -->
+  <aside class="sidebar" id="sidebar" aria-label="Main menu">
+    <a class="brand" href="index.html">
+      <svg viewBox="0 0 40 40" width="38" height="38" aria-hidden="true"><path d="M20 3l14 5v10c0 9-6 16-14 19C12 34 6 27 6 18V8z" fill="#fff"/><path d="M20 12l8 6v9h-5v-6h-6v6h-5v-9z" fill="#1d4ed8"/></svg>
+      <span class="brand-text"><strong>Barangay Complaint &amp; Report System</strong><span>Community Concerns Desk</span></span>
+    </a>
+
+    <div class="side-label">Menu</div>
+    <nav class="side-nav">
+      <a href="index.html#report">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+        Report an Incident
+      </a>
+      <a href="index.html#track">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        Track My Report
+      </a>
+      <a href="admin-login.html" class="active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.4 8.4 8 9 4.6-.6 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>
+        Barangay Admin
+      </a>
+    </nav>
+
+    <div class="side-foot">
+      <button class="theme-btn" type="button" data-theme-toggle aria-label="Switch between light and dark mode"><span class="theme-icon" aria-hidden="true"></span><span class="theme-label"></span></button>
+      <span class="who" id="adminEmailLabel"></span><button class="link-btn" id="adminLogoutBtn" type="button">Log Out</button>
+    </div>
+  </aside>
+  <div class="nav-overlay" id="navOverlay"></div>
+
+  <div class="page">
+    <div class="topbar">
+      <button class="menu-btn" id="navToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="sidebar">&#9776;</button>
+      <strong>Barangay Complaint &amp; Report System</strong>
+      <button class="theme-btn" type="button" data-theme-toggle aria-label="Switch between light and dark mode"><span class="theme-icon" aria-hidden="true"></span><span class="theme-label"></span></button>
+    </div>
+
+  <main class="container" id="adminApp" hidden>
+    <div class="page-head section-title">
+      <div>
+        <h1>Complaint &amp; Report Management</h1>
+        <p>New reports from residents appear here automatically &mdash; no refresh needed.</p>
+      </div>
+      <span class="live-pill" id="livePill">Connecting&hellip;</span>
+    </div>
+
+    <div id="adminError" class="alert alert-error" hidden role="alert"></div>
+
+    <!-- Summary cards (click one to filter the table) -->
+    <section class="stats" aria-label="Report summary">
+      <button class="stat s-total" data-filter="" type="button"><span class="label">Total Reports</span><span class="value" id="statTotal">0</span></button>
+      <button class="stat s-submitted" data-filter="SUBMITTED" type="button"><span class="label">Submitted</span><span class="value" id="statSubmitted">0</span></button>
+      <button class="stat s-review" data-filter="UNDER REVIEW" type="button"><span class="label">Under Review</span><span class="value" id="statReview">0</span></button>
+      <button class="stat s-progress" data-filter="IN PROGRESS" type="button"><span class="label">In Progress</span><span class="value" id="statProgress">0</span></button>
+      <button class="stat s-resolved" data-filter="RESOLVED" type="button"><span class="label">Resolved</span><span class="value" id="statResolved">0</span></button>
+    </section>
+
+    <!-- Report management table -->
+    <section class="card">
+      <div class="toolbar">
+        <div class="search-wrap">
+          <label for="searchBox" class="small muted">Search</label>
+          <input type="search" id="searchBox" placeholder="Report ID, name, location, concern...">
+        </div>
+        <div>
+          <label for="statusFilter" class="small muted">Status</label>
+          <select id="statusFilter"><option value="">All statuses</option></select>
+        </div>
+        <div>
+          <label for="typeFilter" class="small muted">Concern type</label>
+          <select id="typeFilter"><option value="">All types</option></select>
+        </div>
+        <div style="align-self:end">
+          <button class="btn btn-outline" id="clearFilters" type="button">Clear</button>
+        </div>
+      </div>
+
+      <p class="small muted" id="countLine"></p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Report ID</th>
+              <th>Resident Name</th>
+              <th>Concern Type</th>
+              <th>Location</th>
+              <th>Date Submitted</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="reportRows">
+            <tr><td colspan="7" class="empty">Loading reports&hellip;</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  </div>
+
+  <!-- Report details + update -->
+  <dialog id="reportDialog" aria-labelledby="dlgTitle">
+    <div class="modal-head">
+      <div>
+        <h2 id="dlgTitle">Report</h2>
+        <div id="dlgBadge"></div>
+      </div>
+      <button class="icon-btn" id="dlgClose" type="button" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <dl class="details">
+        <div><dt>Resident</dt><dd id="dResident"></dd></div>
+        <div><dt>Contact number</dt><dd id="dContact"></dd></div>
+        <div><dt>Concern type</dt><dd id="dType"></dd></div>
+        <div class="wide"><dt>Location</dt><dd id="dLocation"></dd></div>
+        <div><dt>Date &amp; time submitted</dt><dd id="dCreated"></dd></div>
+        <div><dt>Last updated</dt><dd id="dUpdated"></dd></div>
+      </dl>
+
+      <h3>Description</h3>
+      <p class="desc" id="dDescription"></p>
+
+      <div id="dPhotoWrap">
+        <h3>Photo evidence</h3>
+        <div class="photo-gallery" id="dPhotos"></div>
+      </div>
+
+      <form id="updateForm" class="update-box" novalidate>
+        <h3>Update this report</h3>
+        <div class="field">
+          <label for="uStatus">Status</label>
+          <select id="uStatus"></select>
+        </div>
+        <div class="field">
+          <label for="uRemarks">Remarks / action taken (the resident can read this)</label>
+          <textarea id="uRemarks" maxlength="1000" placeholder="Example: Garbage collection scheduled for Monday morning."></textarea>
+        </div>
+        <button type="submit" class="btn" id="saveBtn">Save update</button>
+      </form>
+
+      <h3>History</h3>
+      <ol class="timeline" id="dHistory"></ol>
+    </div>
+  </dialog>
+
+  <script src="storage.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
